@@ -17,7 +17,7 @@ import pytest
 
 from data_product.pipeline import EXAMPLE_CONTRACT
 
-from .conftest import NOT_PART_OF_A_COPY, ROOT, copy_project, run_uv
+from .conftest import ROOT, copy_project, is_generated, run_uv
 
 README = ROOT / "README.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
@@ -63,14 +63,16 @@ def without_comments(markdown: str) -> str:
     return re.sub(r"<!--.*?-->", "", markdown, flags=re.DOTALL)
 
 
-def markdown_files() -> list[Path]:
-    ignored = NOT_PART_OF_A_COPY(str(ROOT), [])
-    return [
-        path
-        for path in sorted(ROOT.rglob("*.md"))
-        if not set(path.relative_to(ROOT).parts) & set(ignored)
-        and ".venv" not in path.parts
-    ]
+def markdown_files(root: Path = ROOT) -> list[Path]:
+    """Return the project's Markdown files, leaving out what tools created.
+
+    They are sorted by their relative path as text. Sorting the paths
+    themselves would give another order on Windows, which ignores case.
+    """
+    return sorted(
+        (path for path in root.rglob("*.md") if not is_generated(path, root)),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
 
 
 @pytest.fixture(scope="module")
@@ -144,6 +146,26 @@ def test_relative_links_point_to_existing_files(document: Path) -> None:
     ]
 
     assert broken == []
+
+
+def test_generated_folders_are_not_checked_for_links(tmp_path: Path) -> None:
+    for relative in (
+        "README.md",
+        "docs/guide.md",
+        ".pytest_cache/README.md",
+        ".ruff_cache/notes.md",
+        ".venv/lib/package/README.md",
+        "out/report.md",
+        "dist/package/README.md",
+        "build/notes.md",
+        "src/package/__pycache__/notes.md",
+    ):
+        (tmp_path / relative).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / relative).write_text("# notes\n", encoding="utf-8")
+
+    found = [path.relative_to(tmp_path).as_posix() for path in markdown_files(tmp_path)]
+
+    assert found == ["README.md", "docs/guide.md"]
 
 
 def test_data_card_lists_every_contract_column() -> None:

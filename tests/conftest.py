@@ -1,5 +1,6 @@
 """Helpers shared by the tests."""
 
+import fnmatch
 import os
 import shutil
 import subprocess
@@ -9,9 +10,28 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-NOT_PART_OF_A_COPY = shutil.ignore_patterns(
-    ".git", ".venv", "__pycache__", ".*_cache", ".coverage*", "out", "dist", "build"
+# Files and folders that tools create. They are not part of the project.
+GENERATED = (
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".*_cache",
+    ".coverage*",
+    "out",
+    "dist",
+    "build",
 )
+NOT_PART_OF_A_COPY = shutil.ignore_patterns(*GENERATED)
+
+
+def is_generated(path: Path, root: Path) -> bool:
+    """Return True if `path` is inside, or is, something a tool created."""
+    return any(
+        fnmatch.fnmatch(part, pattern)
+        for part in path.relative_to(root).parts
+        for pattern in GENERATED
+    )
+
 
 CsvWriter = Callable[..., Path]
 

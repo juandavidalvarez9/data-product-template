@@ -6,6 +6,12 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The test of relative links now skips folders that tools create, such as
+  `.pytest_cache`, `out` and `dist`. It used to skip only `.venv`, so the
+  number of tests changed from the second run on.
+
 ## [0.1.0] - 2026-11-22
 
 First release of the template.
