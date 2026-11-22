@@ -13,7 +13,13 @@ dependencies = []
 data-product = "data_product.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=9.0"]
+dev = [
+    "coverage>=7.17.4",
+    "mypy>=2.4.1",
+    "poethepoet>=0.49.0",
+    "pytest>=9.0",
+    "ruff>=0.17.6",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]
@@ -24,3 +30,72 @@ testpaths = ["tests"]
 addopts = ["--strict-markers", "--strict-config", "-ra"]
 xfail_strict = true
 filterwarnings = ["error"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes: unused names, undefined names
+    "I",   # import order
+    "B",   # likely bugs
+    "UP",  # outdated syntax
+    "SIM", # code that can be simpler
+    "C4",  # comprehensions
+    "PTH", # pathlib instead of os.path
+    "RUF", # ruff's own rules
+]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+warn_unreachable = true
+
+[tool.coverage.run]
+branch = true
+source_pkgs = ["data_product"]
+# Some tests start a new Python process; measure that process too.
+patch = ["subprocess"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+# One definition of every check. People and CI run the same commands:
+# `uv run poe check` runs all of them.
+[tool.poe.executor]
+# Run each task in the environment poe was started from. Without this, poe
+# starts `uv run` again for every task and ignores `uv run --python`.
+type = "simple"
+
+[tool.poe.tasks.format]
+help = "Rewrite the code in the standard format"
+cmd = "ruff format ."
+
+[tool.poe.tasks.format-check]
+help = "Fail if any file is not in the standard format"
+cmd = "ruff format --check ."
+
+[tool.poe.tasks.lint]
+help = "Look for likely mistakes"
+cmd = "ruff check ."
+
+[tool.poe.tasks.types]
+help = "Check the type annotations"
+cmd = "mypy"
+
+[tool.poe.tasks.test]
+help = "Run the tests and fail if coverage is under 90%"
+sequence = [
+    "coverage erase",
+    "coverage run -m pytest",
+    "coverage combine",
+    "coverage report",
+]
+default_item_type = "cmd"
+
+[tool.poe.tasks.check]
+help = "Run every check, as CI does"
+sequence = ["format-check", "lint", "types", "test"]
