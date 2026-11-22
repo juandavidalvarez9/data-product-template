@@ -4,8 +4,9 @@ Starting point for small, tested data products: one Python package, one
 command line, and one command that runs every check.
 
 > **Status:** early. The template is being built in small pull requests.
-> Today it has the package skeleton, the checks, CI, a sample pipeline and
-> scale measurements. A script to start a new product arrives next.
+> Today it has the package skeleton, the checks, CI, a sample pipeline, scale
+> measurements and a script to start a new product. Fuller documentation
+> arrives next.
 
 ## Requirements
 
@@ -26,6 +27,37 @@ versions pinned in `uv.lock`. The last command prints:
 ```text
 Wrote 5 rows to out/products.parquet
 ```
+
+## Start a new product
+
+1. Create a repository from this template, or copy its files into an empty
+   one.
+2. Rename everything with one command. The name is the one in
+   `pyproject.toml`; the Python package gets the same name with underscores.
+
+   ```console
+   uv run python scripts/init_project.py river-levels
+   ```
+
+   To give the command-line program a shorter name:
+
+   ```console
+   uv run python scripts/init_project.py river-levels --command rivers
+   ```
+
+3. Install and check the renamed project:
+
+   ```console
+   uv sync
+   uv run poe check
+   ```
+
+The script checks the names before it changes anything, so a bad name leaves
+every file as it was. It renames the package folder, the distribution and the
+command in the code, the tests, `pyproject.toml`, `uv.lock` and this README,
+and puts the code back in the standard format. Then it deletes itself and its
+test, because a product has no use for them. It does not rewrite this README
+for your product: that part is still yours.
 
 ## Sample pipeline
 
@@ -120,6 +152,7 @@ Python 3.12, 3.13 and 3.14.
 | `src/data_product/pipeline.py` | The sample pipeline and its contract. |
 | `tests/` | One test per behavior. `tests/data/` has a good and a broken sample file. |
 | `scripts/benchmark.py` | Measures time and peak memory at two sizes. |
+| `scripts/init_project.py` | Renames the template to start a new product. |
 | `docs/benchmarks.md` | The last measurement, written by the script. |
 | `pyproject.toml` | Project metadata, dependencies, tool settings and tasks. |
 | `uv.lock` | Pinned versions of every dependency. |
