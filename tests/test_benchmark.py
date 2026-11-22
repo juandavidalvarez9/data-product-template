@@ -12,12 +12,19 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "benchmark.py"
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "scripts" / "benchmark.py"
+COMMITTED_REPORT = ROOT / "docs" / "benchmarks.md"
 
 
-def run_benchmark(*args: str) -> subprocess.CompletedProcess[str]:
+def run_benchmark(*args: str, output: Path) -> subprocess.CompletedProcess[str]:
+    """Run the script, always writing to `output`.
+
+    Every run names its output, so a test can never overwrite the committed
+    report, even when the code under test is broken.
+    """
     return subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
+        [sys.executable, str(SCRIPT), *args, "--output", str(output)],
         capture_output=True,
         text=True,
         check=False,
@@ -47,7 +54,7 @@ def parse_table(markdown: str) -> dict[str, dict[str, str]]:
 def output(tmp_path_factory: pytest.TempPathFactory) -> Path:
     path = tmp_path_factory.mktemp("benchmark") / "docs" / "benchmarks.md"
     result = run_benchmark(
-        "--rows", "200", "--factor", "10", "--repeats", "1", "--output", str(path)
+        "--rows", "200", "--factor", "10", "--repeats", "1", output=path
     )
     assert result.returncode == 0, result.stderr
     return path
@@ -110,11 +117,28 @@ def test_benchmark_leaves_only_the_report(output: Path) -> None:
     [("--rows", "0"), ("--factor", "1"), ("--repeats", "0"), ("--rows", "many")],
     ids=["zero rows", "factor of one", "zero repeats", "rows not a number"],
 )
-def test_benchmark_rejects_bad_arguments(arguments: tuple[str, ...]) -> None:
-    result = run_benchmark(*arguments)
+def test_benchmark_rejects_bad_arguments(
+    arguments: tuple[str, ...], tmp_path: Path
+) -> None:
+    report = tmp_path / "benchmarks.md"
+
+    result = run_benchmark(*arguments, output=report)
 
     assert result.returncode == 2
     assert arguments[0] in result.stderr
+    assert not report.exists()
+
+
+def test_committed_report_compares_two_different_sizes() -> None:
+    table = parse_table(COMMITTED_REPORT.read_text(encoding="utf-8"))
+    scales = [scale for scale in table if scale not in ("baseline", "1x")]
+
+    assert list(table)[:2] == ["baseline", "1x"]
+    assert len(scales) == 1, f"expected one larger size, found {list(table)}"
+    factor = int(scales[0].removesuffix("x"))
+    rows = {scale: int(table[scale]["Rows"].replace(",", "")) for scale in table}
+    assert factor >= 2
+    assert rows[scales[0]] == factor * rows["1x"]
 
 
 def test_time_comes_from_the_clock(
