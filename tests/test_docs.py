@@ -6,9 +6,11 @@ CI runs exactly that command, and running it here would start this test suite
 again from inside itself.
 """
 
+import datetime
 import re
 import shlex
 import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -18,11 +20,14 @@ from data_product.pipeline import EXAMPLE_CONTRACT
 from .conftest import NOT_PART_OF_A_COPY, ROOT, copy_project, run_uv
 
 README = ROOT / "README.md"
+CHANGELOG = ROOT / "CHANGELOG.md"
+PYPROJECT = ROOT / "pyproject.toml"
 DATA_CARD = ROOT / "docs" / "data-card.md"
 CHECK = "uv run poe check"
 # The template keeps the product README here; it becomes README.md.
 PRODUCT_README = ROOT / "scripts" / "product_readme.md"
 LINK = re.compile(r"\]\(([^)\s]+)\)")
+RELEASE_HEADING = re.compile(r"^## \[([^\]]+)\](?: - (\S+))?$", re.MULTILINE)
 
 
 def section(markdown: str, title: str) -> str:
@@ -155,3 +160,22 @@ def test_data_card_lists_every_contract_column() -> None:
         (column.name, column.dtype, "no" if column.nullable else "yes")
         for column in EXAMPLE_CONTRACT.columns
     ]
+
+
+def test_changelog_releases_match_the_version() -> None:
+    changelog = CHANGELOG.read_text(encoding="utf-8")
+    pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    (unreleased, *releases) = RELEASE_HEADING.findall(changelog)
+
+    assert unreleased == ("Unreleased", ""), "the first section must be [Unreleased]"
+    for version, date in releases:
+        assert re.fullmatch(r"\d+\.\d+\.\d+", version), version
+        datetime.date.fromisoformat(date)
+        assert f"\n[{version}]: https://" in changelog, f"no link for [{version}]"
+    numbers = [tuple(map(int, version.split("."))) for version, _ in releases]
+    assert numbers == sorted(numbers, reverse=True), "newest release first"
+    dates = [date for _, date in releases]
+    assert dates == sorted(dates, reverse=True), "newest date first"
+    if releases:
+        newest, _ = releases[0]
+        assert newest == pyproject["project"]["version"]
