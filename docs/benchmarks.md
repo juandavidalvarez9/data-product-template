@@ -4,13 +4,13 @@ This file is written by `uv run poe bench`. Do not edit it by hand.
 
 | Scale | Rows | Input size | Time | Rows per second | Peak memory |
 | --- | --- | --- | --- | --- | --- |
-| baseline | 1 | 0.1 KB | 0.04 s | - | 70.3 MB |
-| 1x | 100,000 | 3.4 MB | 0.14 s | 724,361 | 82.7 MB |
-| 1x | 100,000 | 3.4 MB | 0.14 s | 719,172 | 85.4 MB |
+| baseline | 1 | 0.1 KB | 0.04 s | - | 73.5 MB |
+| 1x | 100,000 | 3.4 MB | 0.14 s | 697,820 | 85.7 MB |
+| 1x | 100,000 | 3.4 MB | 0.12 s | 800,501 | 85.8 MB |
 
-1 times the rows took 1.0 times the time and
+1 times the rows took 0.9 times the time and
 1.0 times the peak memory. One row already needs
-70.3 MB: that is the fixed cost of Python and DuckDB.
+73.5 MB: that is the fixed cost of Python and DuckDB.
 
 ## How it was measured
 

@@ -5,8 +5,7 @@ script, install the dependencies and run every check in the renamed copy.
 """
 
 import importlib.util
-import os
-import shutil
+import re
 import subprocess
 import sys
 import tomllib
@@ -15,11 +14,9 @@ from types import ModuleType
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
+from .conftest import ROOT, copy_project, run_uv
+
 SCRIPT = ROOT / "scripts" / "init_project.py"
-NOT_PART_OF_A_COPY = shutil.ignore_patterns(
-    ".git", ".venv", "__pycache__", ".*_cache", ".coverage*", "out", "dist", "build"
-)
 TEMPLATE_NAMES = ("data_product", "data-product")
 
 
@@ -33,11 +30,6 @@ def load_script() -> ModuleType:
     return module
 
 
-def copy_template(destination: Path) -> Path:
-    shutil.copytree(ROOT, destination, ignore=NOT_PART_OF_A_COPY)
-    return destination
-
-
 def snapshot(root: Path) -> dict[str, bytes]:
     return {
         str(path.relative_to(root)): path.read_bytes()
@@ -46,26 +38,9 @@ def snapshot(root: Path) -> dict[str, bytes]:
     }
 
 
-def run_in(project: Path, *command: str) -> subprocess.CompletedProcess[str]:
-    """Run a command in `project` without leaking this test run's settings."""
-    uv = shutil.which("uv")
-    assert uv is not None, "uv must be on PATH to test a renamed copy"
-    leaked = ("COVERAGE_", "COV_CORE_", "VIRTUAL_ENV", "PYTEST_")
-    env = {k: v for k, v in os.environ.items() if not k.startswith(leaked)}
-    return subprocess.run(
-        [uv, *command],
-        cwd=project,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=900,
-    )
-
-
 @pytest.fixture
 def template(tmp_path: Path) -> Path:
-    return copy_template(tmp_path / "copy")
+    return copy_project(tmp_path / "copy")
 
 
 @pytest.fixture(scope="module")
@@ -73,7 +48,7 @@ def product(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A copy of the template, renamed once and shared by the read-only tests."""
     # The names of the first real product: longer than the template's, so
     # they also prove that the renamed code is put back in the standard format.
-    root = copy_template(tmp_path_factory.mktemp("product") / "catalog")
+    root = copy_project(tmp_path_factory.mktemp("product") / "catalog")
     load_script().init_project(
         root,
         package="colombia_medicines_catalog",
@@ -84,13 +59,13 @@ def product(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 def test_renamed_copy_passes_its_own_tests(product: Path) -> None:
-    sync = run_in(product, "sync", "--locked")
+    sync = run_uv(product, "sync", "--locked")
     assert sync.returncode == 0, sync.stderr
 
-    check = run_in(product, "run", "poe", "check")
+    check = run_uv(product, "run", "poe", "check")
     assert check.returncode == 0, check.stdout + check.stderr
 
-    version = run_in(product, "run", "colmed", "--version")
+    version = run_uv(product, "run", "colmed", "--version")
     assert version.stdout.strip() == "colmed 0.1.0"
 
 
@@ -121,8 +96,39 @@ def test_names_go_to_the_right_places(product: Path) -> None:
 
 def test_template_only_files_are_removed(product: Path) -> None:
     assert not (product / "scripts" / "init_project.py").exists()
+    assert not (product / "scripts" / "product_readme.md").exists()
     assert not (product / "tests" / "test_init_project.py").exists()
     assert (product / "scripts" / "benchmark.py").is_file()
+
+
+def test_product_readme_has_required_sections(product: Path) -> None:
+    readme = (product / "README.md").read_text(encoding="utf-8")
+    required = ["Problem", "Data", "Quick start", "Example", "Limits"]
+
+    headings = re.findall(r"^## (.+)$", readme, flags=re.MULTILINE)
+
+    assert [heading for heading in headings if heading in required] == required
+    assert "Start a new product" not in headings
+
+
+def test_product_starts_with_a_fresh_changelog(product: Path) -> None:
+    changelog = (product / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert changelog.startswith("# Changelog\n")
+    assert "## [Unreleased]" in changelog
+    assert "- Project started from the data product template." in changelog
+    assert "benchmark" not in changelog.lower()
+
+
+def test_missing_product_readme_is_reported(template: Path) -> None:
+    script = load_script()
+    (template / "scripts" / "product_readme.md").unlink()
+    before = snapshot(template)
+
+    with pytest.raises(script.InitError, match=r"product_readme\.md is missing"):
+        script.init_project(template, package="river_levels", dist_name="river-levels")
+
+    assert snapshot(template) == before
 
 
 def test_command_defaults_to_the_distribution_name(template: Path) -> None:

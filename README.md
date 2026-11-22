@@ -1,12 +1,20 @@
 # data-product-template
 
+[![CI](https://github.com/juandavidalvarez9/data-product-template/actions/workflows/ci.yml/badge.svg)](https://github.com/juandavidalvarez9/data-product-template/actions/workflows/ci.yml)
+
 Starting point for small, tested data products: one Python package, one
 command line, and one command that runs every check.
 
-> **Status:** early. The template is being built in small pull requests.
-> Today it has the package skeleton, the checks, CI, a sample pipeline, scale
-> measurements and a script to start a new product. Fuller documentation
-> arrives next.
+A new product starts from code that already works and already proves it:
+
+- a sample pipeline that checks a CSV file against a **data contract** and
+  writes it as Parquet;
+- format, lint, strict type and test checks, with a coverage floor, run by CI
+  on Ubuntu and Windows;
+- a benchmark that measures time and peak memory at two sizes;
+- a script that renames the template to the new product;
+- a product README, a data card and decision records to fill in, with tests
+  that keep the README's commands honest.
 
 ## Requirements
 
@@ -52,12 +60,20 @@ Wrote 5 rows to out/products.parquet
    uv run poe check
    ```
 
+4. Fill in `README.md` and `docs/data-card.md` for your product.
+
 The script checks the names before it changes anything, so a bad name leaves
 every file as it was. It renames the package folder, the distribution and the
-command in the code, the tests, `pyproject.toml`, `uv.lock` and this README,
-and puts the code back in the standard format. Then it deletes itself and its
-test, because a product has no use for them. It does not rewrite this README
-for your product: that part is still yours.
+command in the code, the tests, `pyproject.toml` and `uv.lock`, and puts the
+code back in the standard format.
+
+It also replaces this README with a product README whose sections are ready to
+fill in: problem, data, quick start, example, how it is tested and limits. It
+starts a new, empty changelog. Then it deletes itself and the files only the
+template needs.
+
+The product README links to the CI badge of a repository with the same name as
+the product, so name the GitHub repository after the product.
 
 ## Sample pipeline
 
@@ -143,6 +159,21 @@ what the numbers do not tell you.
 CI runs the same command on every pull request, on Ubuntu and Windows, with
 Python 3.12, 3.13 and 3.14.
 
+The tests also read the README. They run every command in **Quick start**
+except `uv run poe check`, which is what CI runs, and every line that starts
+with `$ ` in a console block, and compare the output with the README. They
+also check that relative links point to files that exist, and that the data
+card lists the same fields as the data contract.
+
+## Documentation
+
+| File | What it holds |
+| --- | --- |
+| [`docs/data-card.md`](docs/data-card.md) | Where the data comes from, its license, its fields and its known problems. |
+| [`docs/decisions/`](docs/decisions/) | Why the tools and the data checks are the way they are. |
+| [`docs/benchmarks.md`](docs/benchmarks.md) | The last scale measurement. |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed in each version. |
+
 ## Layout
 
 | Path | What it holds |
@@ -153,11 +184,22 @@ Python 3.12, 3.13 and 3.14.
 | `tests/` | One test per behavior. `tests/data/` has a good and a broken sample file. |
 | `scripts/benchmark.py` | Measures time and peak memory at two sizes. |
 | `scripts/init_project.py` | Renames the template to start a new product. |
-| `docs/benchmarks.md` | The last measurement, written by the script. |
+| `scripts/product_readme.md` | The README a new product starts with. |
+| `docs/` | Data card, decision records and the last scale measurement. |
 | `pyproject.toml` | Project metadata, dependencies, tool settings and tasks. |
 | `uv.lock` | Pinned versions of every dependency. |
 | `.github/workflows/ci.yml` | The CI workflow. |
 | `.github/dependabot.yml` | Weekly dependency updates. |
+
+## Limits
+
+- It is a Python template. Products in other languages need their own.
+- The sample pipeline reads comma-separated UTF-8 files only.
+- Windows is tested by CI only; macOS is not tested.
+- There is no container yet. It arrives with the first product that runs as a
+  service.
+- Improvements to the template do not reach products that were already
+  created from it. They are copied by hand.
 
 ## License
 
