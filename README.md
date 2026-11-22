@@ -4,9 +4,8 @@ Starting point for small, tested data products: one Python package, one
 command line, and one command that runs every check.
 
 > **Status:** early. The template is being built in small pull requests.
-> Today it has the package skeleton, the checks, CI and a sample pipeline.
-> Scale measurements and a script to start a new product arrive in the next
-> ones.
+> Today it has the package skeleton, the checks, CI, a sample pipeline and
+> scale measurements. A script to start a new product arrives next.
 
 ## Requirements
 
@@ -76,6 +75,26 @@ Limits you should know:
 - The exit code is 0 on success, 1 when the input is rejected and 2 when the
   command itself is wrong.
 
+## Scale
+
+`uv run poe bench` measures the sample pipeline at a base size and at ten
+times that size, and rewrites [`docs/benchmarks.md`](docs/benchmarks.md) with
+the time and the peak memory of each one.
+
+```console
+uv run poe bench
+```
+
+The base size is 100,000 synthetic rows. To use another one:
+
+```console
+uv run poe bench --rows 500000
+```
+
+Each size runs in a new Python process, so the memory of one run cannot hide
+inside another. The report also says on which machine it was measured and
+what the numbers do not tell you.
+
 ## Checks
 
 `uv run poe check` runs these steps in order and stops at the first failure:
@@ -100,6 +119,8 @@ Python 3.12, 3.13 and 3.14.
 | `src/data_product/contract.py` | The data contract and the checks behind it. |
 | `src/data_product/pipeline.py` | The sample pipeline and its contract. |
 | `tests/` | One test per behavior. `tests/data/` has a good and a broken sample file. |
+| `scripts/benchmark.py` | Measures time and peak memory at two sizes. |
+| `docs/benchmarks.md` | The last measurement, written by the script. |
 | `pyproject.toml` | Project metadata, dependencies, tool settings and tasks. |
 | `uv.lock` | Pinned versions of every dependency. |
 | `.github/workflows/ci.yml` | The CI workflow. |

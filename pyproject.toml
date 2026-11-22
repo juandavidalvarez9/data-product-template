@@ -52,7 +52,7 @@ select = [
 
 [tool.mypy]
 strict = true
-files = ["src", "tests"]
+files = ["src", "tests", "scripts"]
 warn_unreachable = true
 
 [tool.coverage.run]
@@ -97,6 +97,10 @@ sequence = [
     "coverage report",
 ]
 default_item_type = "cmd"
+
+[tool.poe.tasks.bench]
+help = "Measure time and peak memory at 1x and 10x, and rewrite docs/benchmarks.md"
+cmd = "python scripts/benchmark.py"
 
 [tool.poe.tasks.check]
 help = "Run every check, as CI does"
