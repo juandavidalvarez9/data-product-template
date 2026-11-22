@@ -23,6 +23,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     There are no subcommands yet, so a bare call prints the help text.
     """
     parser = build_parser()
-    parser.parse_args(argv)
+    parser.parse_known_args(argv)
     parser.print_help()
     return 0
