@@ -7,7 +7,9 @@ requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Juan David Alvarez Gamez" }]
-dependencies = []
+dependencies = [
+    "duckdb>=2.0.1",
+]
 
 [project.scripts]
 data-product = "data_product.cli:main"

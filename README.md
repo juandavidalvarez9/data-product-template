@@ -4,8 +4,9 @@ Starting point for small, tested data products: one Python package, one
 command line, and one command that runs every check.
 
 > **Status:** early. The template is being built in small pull requests.
-> Today it has the package skeleton, the checks and CI. A sample pipeline
-> and scale measurements arrive in the next ones.
+> Today it has the package skeleton, the checks, CI and a sample pipeline.
+> Scale measurements and a script to start a new product arrive in the next
+> ones.
 
 ## Requirements
 
@@ -17,11 +18,63 @@ command line, and one command that runs every check.
 ```console
 uv sync
 uv run poe check
-uv run data-product --version
+uv run data-product run tests/data/products.csv out/products.parquet
 ```
 
 `uv sync` creates the virtual environment and installs the exact dependency
-versions pinned in `uv.lock`.
+versions pinned in `uv.lock`. The last command prints:
+
+```text
+Wrote 5 rows to out/products.parquet
+```
+
+## Sample pipeline
+
+The template ships one small pipeline, so a new product starts from code that
+already works. It checks a CSV file against a **data contract** and writes it
+as Parquet.
+
+The contract lives in `src/data_product/pipeline.py`. It lists the columns the
+file must have, the type of each one and which ones may be empty:
+
+```python
+EXAMPLE_CONTRACT = Contract(
+    columns=(
+        Column("product_id", "BIGINT", nullable=False),
+        Column("name", "VARCHAR", nullable=False),
+        Column("registered_on", "DATE"),
+        Column("units", "BIGINT"),
+    )
+)
+```
+
+When a file breaks the contract, nothing is written and every problem is
+listed at once:
+
+```console
+$ uv run data-product run tests/data/products_broken.csv out/broken.parquet
+tests/data/products_broken.csv does not meet the contract:
+- column 'name': 1 empty value, but the column is required
+- column 'registered_on': 1 value is not DATE, for example '15/01/2024'
+- column 'units': 1 value is not BIGINT, for example 'twenty'
+```
+
+What the pipeline guarantees:
+
+- The header must have exactly the contract's columns, in any order.
+- Every value must convert to its column's type. Empty values are accepted
+  only in columns that allow them, and are written as nulls.
+- Nothing is written unless the whole file meets the contract.
+- The output is written under a temporary name and renamed at the end, so a
+  failed run never leaves a half-written file or damages the previous one.
+
+Limits you should know:
+
+- Input must be comma-separated UTF-8 text. A byte order mark is fine. Other
+  separators and encodings are rejected, not guessed.
+- Types are DuckDB types, so dates must look like `2024-01-15`.
+- The exit code is 0 on success, 1 when the input is rejected and 2 when the
+  command itself is wrong.
 
 ## Checks
 
@@ -43,8 +96,10 @@ Python 3.12, 3.13 and 3.14.
 
 | Path | What it holds |
 | --- | --- |
-| `src/data_product/` | The package. `cli.py` is the command-line entry point. |
-| `tests/` | One test per behavior. |
+| `src/data_product/cli.py` | The command line. |
+| `src/data_product/contract.py` | The data contract and the checks behind it. |
+| `src/data_product/pipeline.py` | The sample pipeline and its contract. |
+| `tests/` | One test per behavior. `tests/data/` has a good and a broken sample file. |
 | `pyproject.toml` | Project metadata, dependencies, tool settings and tasks. |
 | `uv.lock` | Pinned versions of every dependency. |
 | `.github/workflows/ci.yml` | The CI workflow. |
