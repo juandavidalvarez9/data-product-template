@@ -64,8 +64,15 @@ def without_comments(markdown: str) -> str:
 
 
 def markdown_files(root: Path = ROOT) -> list[Path]:
-    """Return the project's Markdown files, leaving out what tools created."""
-    return [path for path in sorted(root.rglob("*.md")) if not is_generated(path, root)]
+    """Return the project's Markdown files, leaving out what tools created.
+
+    They are sorted by their relative path as text. Sorting the paths
+    themselves would give another order on Windows, which ignores case.
+    """
+    return sorted(
+        (path for path in root.rglob("*.md") if not is_generated(path, root)),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
 
 
 @pytest.fixture(scope="module")
