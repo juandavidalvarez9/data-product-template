@@ -15,3 +15,6 @@ dist/
 .coverage
 .coverage.*
 htmlcov/
+
+# Output of the sample pipeline
+out/
