@@ -1,0 +1,26 @@
+[project]
+name = "data-product"
+version = "0.1.0"
+description = "Starting point for small, tested data products."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Juan David Alvarez Gamez" }]
+dependencies = []
+
+[project.scripts]
+data-product = "data_product.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=9.0"]
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "--strict-config", "-ra"]
+xfail_strict = true
+filterwarnings = ["error"]
