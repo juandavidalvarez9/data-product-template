@@ -6,6 +6,10 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-22
+
+First release of the template.
+
 ### Added
 
 - Package skeleton with a command line that reports its version
@@ -19,13 +23,13 @@ and versions follow [Semantic Versioning](https://semver.org/).
   ([#4](https://github.com/juandavidalvarez9/data-product-template/pull/4)).
 - Scale benchmark at one row, a base size and ten times that size, with its
   report in `docs/benchmarks.md`
-  ([#5](https://github.com/juandavidalvarez9/data-product-template/pull/5)).
+  ([#5](https://github.com/juandavidalvarez9/data-product-template/pull/5),
+  [#7](https://github.com/juandavidalvarez9/data-product-template/pull/7)).
 - Script that renames the template to start a new product
   ([#6](https://github.com/juandavidalvarez9/data-product-template/pull/6)).
 - Product README, data card, decision records and this changelog. Tests check
-  that the README commands run and print what the README shows.
+  that the README commands run and print what the README shows
+  ([#7](https://github.com/juandavidalvarez9/data-product-template/pull/7)).
 
-### Changed
-
-- The build backend `uv_build` may now be any version below 0.14
-  ([#3](https://github.com/juandavidalvarez9/data-product-template/pull/3)).
+[Unreleased]: https://github.com/juandavidalvarez9/data-product-template/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/juandavidalvarez9/data-product-template/releases/tag/v0.1.0
